@@ -13,12 +13,22 @@ def d_sol(data,offset_week=0, aprx_deg=4,count_weeks = 62):
         sh = ss[i,:].toarray().ravel()
         h = sh[1:].reshape(-1, 7)
         g = (((h>0).cumsum(axis=1) == 1) * h).sum(axis=1)
-        j = np.argmax(np.dot (np.arange( count_weeks ), 
+        j = np.argmax(np.dot ( np.arange( count_weeks ), 
             csr_matrix((np.ones( count_weeks ), 
             (np.arange( count_weeks ), g)), 
             shape=( count_weeks, 17)).toarray()))
         a.append(j)
-    return pd.DataFrame({'id': np.arange(1, 110001), 'sum':a})
+    df = pd.DataFrame({'id': np.arange(1, 110001), 'sum':a})
+    max_day = data['date'].max()
+    df_max_diff_id = data.set_index('id')['date'].diff().groupby('id').max().to_frame().reset_index(drop=True)
+    df_diff_btw_max_last = data.groupby('id')['date'].max().to_frame().reset_index(drop=True)
+    df_diff_btw_max_last['date'] = max_day - df_diff_btw_max_last['date']
+    df_id_out = (df_diff_btw_max_last['date'] < aprx_deg ).to_frame()
+    '''df_max_diff_id['date']'''
+    df_id_out = df_id_out.reset_index(drop=True)
+    df = df.reset_index(drop=True)
+    df['sum'] = df['sum']*df_id_out['date']
+    return df
 
 def get_prediction(df,offset_week=0,aprx_deg=4,count_weeks=22):
     median = df.groupby(['id'])['sum'].median(skipna=True)
@@ -28,7 +38,8 @@ def get_prediction(df,offset_week=0,aprx_deg=4,count_weeks=22):
     df_max_diff_id = df.set_index('id')['date'].diff().groupby('id').max().to_frame()
     df_diff_btw_max_last = df.groupby('id')['date'].max().to_frame()
     df_diff_btw_max_last['date'] = max_day - df_diff_btw_max_last['date']
-    df_id_out = (df_diff_btw_max_last['date'] < df_max_diff_id['date']).to_frame()
+    df_id_out = (df_diff_btw_max_last['date'] < 5*7).to_frame()
+    '''df_max_diff_id['date']'''
     df_median['sum'] = df_median['sum'] * df_id_out['date']
     return df_median
 
@@ -76,7 +87,7 @@ def super_predict(df, offset_week=0, aprx_deg=6, count_weeks=30):
     #aprx_deg = 6
     #count_weeks = 30
     h_mul = 1.3
-    df_without_nose = df[ df['date'] >= 438 - count_weeks * 7 ].copy()
+    df_without_nose = df[ df['date'] >= 355 - count_weeks * 7 ].copy()
     df_without_nose = df.copy()
     max_day = df_without_nose['date'].max()
     mass = { j: list() for j in range(0,17)}
@@ -194,12 +205,14 @@ def super_predict(df, offset_week=0, aprx_deg=6, count_weeks=30):
 def main():
     global global_count_week
     df = pd.read_csv("C:/MMP_MSU/PZAD/PZAD_task1/train2.csv")
-    #df_after = df[ df[ 'date' ] > 438 - 20 * 7 ]
-    #df_before = df[ df[ 'date' ] < 438 - 32 * 7 ]
+    #f = open("ans.txt",'w')
+    df_after = df[ df[ 'date' ] > 438 - 20 * 7 ]
+    df_before = df[ df[ 'date' ] < 438 - 32 * 7 ]
     #print(df_after[df_after['id']==1])
-    #df_before['date'] = df_before['date'] + 12 * 7
+    df_after['date'] = df_after['date'] - 12 * 7 + 1
     #print(df_before[df_before['id']==1])
-    #df_before = df_before.append( df_after )
+    df_before = df_before.append( df_after )
+    df = df_before
     #print(df_before[df_before['id']==1])
     global_count_week = 10
     #print(testing_prediction( super_predict, df, 1, 4, 22 ))
@@ -208,25 +221,33 @@ def main():
     #df_ret.to_csv("C:/MMP_MSU/PZAD/PZAD_task1/sup_res.csv", index=False)
     max_pred = 0
     max_size = 0
-    size = 38
-    df_without_nose = df[ df['date'] >= 438 - size * 7 ].copy()
-    df_without_nose['date'] = df_without_nose[ 'date' ] - ( 438 - size * 7) + 1
-    full = { k for k in range(1,110001) }
-    part_ids = set(df_without_nose['id'].unique())
-    non_rm_ids = full.difference( part_ids )
-    if non_rm_ids:
-        df_for_append = pd.DataFrame([(i,10,0) for i in non_rm_ids],columns=['id','date','sum'])
-        df_without_nose = df_without_nose.append(df_for_append).sort_values(['id','date'])
-    df_without_nose = df_without_nose.reset_index(drop=True)
-    for deg in range(2, 3):
-        #df_ret = d_sol(df_without_nose,0,0,size)
+    size = 50
+    preds = []
+    degs = []
+    for deg in range(18,11,-1):
+        df_without_nose = df[ df['date'] >= 355 - size * 7 ].copy()
+        df_without_nose['date'] = df_without_nose[ 'date' ] - ( 355 - size * 7) + 1
+        full = { k for k in range(1,110001) }
+        part_ids = set(df_without_nose['id'].unique())
+        non_rm_ids = full.difference( part_ids )
+        if non_rm_ids:
+            df_for_append = pd.DataFrame([(i,10,0) for i in non_rm_ids],columns=['id','date','sum'])
+            df_without_nose = df_without_nose.append(df_for_append).sort_values(['id','date'])
+        df_without_nose = df_without_nose.reset_index(drop=True)
+        #df_ret = d_sol(df_without_nose,0,deg,size)
         #df_ret.to_csv("C:/MMP_MSU/PZAD/PZAD_task1/sup_res.csv", index=False)
         pred = testing_prediction( d_sol, df_without_nose, 1, deg, size - 1 )
         print(pred,deg)
-        if(pred > max_pred):
-            max_pred = pred
-            max_size = deg
-    print(max_pred,max_size)
+        preds.append(pred)
+        degs.append(deg)
+        #f.write(str(pred) + " " + str(size)+'\n')
+        #if(pred > max_pred):
+        #    max_pred = pred
+        #    max_size = size
+    print(preds)
+    print(degs)
+    #f.write(str(max_pred) + " " + str(max_size))
+    #f.close()
     #print( testing_prediction( get_prediction, df_without_nose, 1 ) )
     #df_without_nose = df_without_nose.reset_index()
     '''

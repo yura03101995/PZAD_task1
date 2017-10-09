@@ -160,36 +160,6 @@ def super_predict(df, offset_week=0, aprx_deg=6, count_weeks=30):
             treshold += (len(df_loc_max_2_by_sum.index))
             df_loc_max_2_by_sum = df_loc_max_2_by_sum[ df_loc_max_2_by_sum.index > treshold ]
             df_return = df_return.append(df_loc_max_2_by_sum)
-    '''
-    df_return = pd.DataFrame(columns=['id','sum','count'])
-    df_with_p_c = df_with_p.copy()
-    for i in range(0,10):
-        idx = df_with_p_c.groupby('count')
-        needed_counts = int(parts[i] * 110000)
-        getter_count = 0
-        for k in range(10,-1,-1):
-            #print(df_with_p_c)
-            df_group = idx.get_group(k)
-            idx_loc = df_group.groupby('id')['sum'].transform(np.median).astype(int) == df_group['sum']
-            df_group = df_group.loc[idx_loc]
-            df_group = df_group[ df_group['sum'] == i ]
-            len_group = len(df_group.index)
-            if(len_group+getter_count > needed_counts):
-                df_group.reset_index(drop=True)
-                df_group = df_group[ df_group.index < needed_counts - getter_count ]
-                df_return = df_return.append(df_group)
-                break
-            df_return = df_return.append(df_group)
-            getter_count += len_group
-            #full_idx = set(df_with_p_c.index)
-            #erase_idx = set(df_group.index)
-            #non_rm_idx = full_idx.difference(erase_idx)
-            #df_with_p_c = df_with_p_c.loc[ non_rm_idx ]
-            
-    df_return['sum'] = df_return['sum'].astype(int)
-    idx_loc = df_return.groupby('id')['sum'].transform(np.median).astype(int) == df_return['sum']
-    df_return = df_return.loc[idx_loc]
-    '''
     full = { k for k in range(1,110001) }
     part_ids = set(df_return['id'].unique())
     non_rm_ids = full.difference( part_ids )
@@ -215,10 +185,11 @@ def main():
     df = df_before
     #print(df_before[df_before['id']==1])
     global_count_week = 10
-    #print(testing_prediction( super_predict, df, 1, 4, 22 ))
+    #print(testing_prediction( super_predict, df, 1, 4, 22 )) #лучший
     #df_ret = super_predict(df,0,4,22)
     #print(df_ret)
     #df_ret.to_csv("C:/MMP_MSU/PZAD/PZAD_task1/sup_res.csv", index=False)
+    '''
     max_pred = 0
     max_size = 0
     size = 50
@@ -246,11 +217,11 @@ def main():
         #    max_size = size
     print(preds)
     print(degs)
+    '''
     #f.write(str(max_pred) + " " + str(max_size))
     #f.close()
     #print( testing_prediction( get_prediction, df_without_nose, 1 ) )
     #df_without_nose = df_without_nose.reset_index()
-    '''
     max_pred = 0
     max_aprx = 0
     max_size = 0
@@ -264,7 +235,7 @@ def main():
                 max_aprx = i
                 max_size = j
     print(max_pred,max_aprx,max_size)
-    '''
+    
 def frange(start, stop, step):
     x = start
     while x < stop:
